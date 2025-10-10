@@ -289,3 +289,29 @@ function displayUsername() {
 }
 ```
 
+## 本地仓库、远程仓库
+
+```bash
+本地仓库是本地目录钟.git文件夹
+
+#常用命令
+#创建本地仓库
+git init
+#将暂存区内容提交到本地仓库
+git commit -m "注释"
+#查看本地仓库提交历史
+git log
+#切换分支
+git checkout
+
+#远程仓库
+#克隆远程仓库到本地
+git clone <URL>	#默认别名origin
+#将本地提交推送到远程仓库
+git push
+#从远程从库拉取最新提交并自动合并
+git pull
+#从远程仓库下载最新提交，但不合并，更新到远程跟踪分支
+git fetch
+```
+
