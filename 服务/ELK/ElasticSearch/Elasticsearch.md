@@ -545,3 +545,23 @@ curl -X PUT "localhost:9200/blog/_mapping" -H 'Content-Type: application/json' -
 '
 ```
 
+
+
+# 一些问题
+
+## 关于是否分词
+
+```bash
+字段在进行存储时，是否分词取决于字段的类型
+keyowrd不进行分词
+text进行分词
+
+查询时，对查询的内容是否进行分词取决于DSL查询的类型
+Match Query：分词
+Match Phrase Query：分词
+Term Query：不分词
+Prefix Query：不分词
+Wildcard Query：不分词
+Query String/Simple Query String：这两个是封装器，根据是否带引号""来决定内部使用match(分词) 还是term/prefix(不分词)
+```
+

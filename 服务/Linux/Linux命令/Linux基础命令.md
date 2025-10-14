@@ -244,6 +244,19 @@ curl -C - -O https://example.com/large-system.iso
 # 说明：-C - 表示“从上次中断的位置继续”，需确保文件名和之前一致
 ```
 
+```shell
+-f: 这个选项代表 --fail。它的作用是让 curl 在 HTTP 请求失败时（例如遇到 404 Not Found 或 500 Internal Server Error）以静默模式退出，而不会在标准输出中显示错误信息。这有助于在脚本中进行错误处理。
+
+-s: 这个选项代表 --silent。它会使 curl 进入静默模式，不显示进度条或错误信息，让输出更干净。
+
+-S: 这个选项代表 --show-error。它通常与 -s 选项一起使用，当出现错误时，虽然不显示进度条，但会显示错误信息。
+
+-L: 这个选项代表 --location。如果请求的 URL 发生了重定向，curl 会自动跟随重定向，直到找到最终的资源。
+
+Ubuntu下载公钥
+curl -fsSL https://repo.zabbix.com/zabbix-official-repo.key | sudo gpg --dearmor -o /etc/apt/keyrings/zabbix-archive-keyring.gpg
+```
+
 
 
 
@@ -475,20 +488,7 @@ EOF
 
 
 
-# curl命令
 
-```shell
--f: 这个选项代表 --fail。它的作用是让 curl 在 HTTP 请求失败时（例如遇到 404 Not Found 或 500 Internal Server Error）以静默模式退出，而不会在标准输出中显示错误信息。这有助于在脚本中进行错误处理。
-
--s: 这个选项代表 --silent。它会使 curl 进入静默模式，不显示进度条或错误信息，让输出更干净。
-
--S: 这个选项代表 --show-error。它通常与 -s 选项一起使用，当出现错误时，虽然不显示进度条，但会显示错误信息。
-
--L: 这个选项代表 --location。如果请求的 URL 发生了重定向，curl 会自动跟随重定向，直到找到最终的资源。
-
-Ubuntu下载公钥
-curl -fsSL https://repo.zabbix.com/zabbix-official-repo.key | sudo gpg --dearmor -o /etc/apt/keyrings/zabbix-archive-keyring.gpg
-```
 
 # history命令
 

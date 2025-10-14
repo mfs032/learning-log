@@ -610,3 +610,38 @@ istiod将更新后的服务列表下发给所有相关的 Sidecar 代理。
 随后，它就可以为这个服务的流量应用你定义的任何 VirtualService（超时、重试）和 DestinationRule（负载均衡、熔断）策略，并收集完整的可观测性数据。
 ```
 
+
+
+# 一些问题
+
+## 创建新istio ingress gateway
+
+```
+创建一个新的istio dep、svc：用于实现流量隔离、独立IP
+```
+
+## VistualService路由冲突和原理和验证
+
+```
+如果多个VS绑定到同一域名，且不设置其他分割流量的区分方式，会冲突。
+流量不会随机分配，而是确定性的流向合并列表中第一个生效的路由记录
+
+观察现象：多个vs配置了elb的默认域名，多次访问该域名只有一个服务有访问记录
+
+原理：Envoy会将gw和vs定义的路由规则合并到一个路由列表，只有排在最前面的规则生效，覆盖所有其他规则
+
+
+解决：使用了新域名cname映射到elb的默认域名，这样请求到达istio-ingressgateway-pod时请求的域名时新域名，按照新域名的路由规则进行路由，而新域名的路由规则只有一条，没有冲突。
+或者删除所有冲突的elb默认域名的规则。
+
+解决后的观察现象：访问记录是新域名而不是elb的默认域名，是的elb的默认域名配置的vs虽然冲突，却不影响用户访问，因为用户访问的域名配置的vs不冲突
+```
+
+## gateway和virtualservice分层绑定
+
+```
+定义的gateway通过selector绑定对应的istio-iingressgateway-pod，
+定义的virtualservice通过指定gateway绑定gateway，
+这样vs-gw-istioingressgatewaypod三者绑定
+```
+

@@ -196,6 +196,52 @@ spec.ports列表指定由svc集群入口port: 80, 转发到的pod的端口target
 
 #### Service - LoadBalancer
 
+```bash
+service的定义和控制器触发：
+1.用户创建或修改一个svc对象，并设置spec.type.LoadBalancer
+2.运行在控制平面的Cloud Controller Manager(CCM)在持续监听svc资源的创建，会监听到该LoadBalancer类型的svc的创建
+
+外部负载均衡器的创建：
+1.当CCM监听到对应的svc被闯进啊后，会调用底层云平台的API：
+2.自动创建一个L4(网络层)或L7(应用层)的外部负载均衡器
+分配外部IP地址或DNS名称给这个负载均衡器
+3.更新svc的状态，CCM将外部IP地址或DNS名称写回到对应svc的status.loadBalancer.ingress字段
+
+流量路由配置：
+LoadBalancer Service的流量路由通常是基于NodePort机制实现的：
+1.自动分配NodePort：当创建LB svc时，会自动启用NodePort Service的功能。在集群的每一个节点上分配一个静态端口
+2.负载均衡器配置目标：CCM配置外部负载均衡器，监听对应端口，将接受的流量转发到所有工作节点上的NodePort上
+3.节点内转发：外部流量到达集群节点上的NodeIP:NodePort，节点上运行的kube-porxy将流量从NodePort进一步转发到svc的ClusterIP，最后流量从ClusterIP负载均衡到后端健康的Pod上
+
+
+注意：
+1.只要svc存在，外部的负载均衡器和IP就会保持不变
+2.externalTrafficPolicy：Cluster默认，流量会在节点之间再次负载均衡，可以发送到任意节点上的Pod
+Local流量只会发送到本地节点上的Pod，如果节点上没有后端Pod，该节点会健康检查失败，负载均衡器将不会向其发送流量
+3.裸机：在没有云提供商的本地集群中，不能直接使用LoadBalancer，需要使用MetalLB等第三方项目来模拟云负载均衡器的行为
+```
+
+##### EKS两种模式
+
+```
+1. Instance 模式 (传统 NodePort 模式)
+这是 Kubernetes 在云平台上的经典实现方式
+工作原理：
+（1）Service 创建后，AWS Cloud Controller Manager 或 AWS Load Balancer Controller 会在 AWS 中创建 Network Load Balancer (NLB) 或 Classic Load Balancer (CLB)。该 AWS 负载均衡器被配置为将流量发送到集群中的所有 Worker 节点。
+（2）负载均衡器的目标组 (Target Group) 注册的是节点的 IP 地址和 Service 自动分配的 NodePort（例如 NodeIP:30001）。
+（3）流量到达节点后，由该节点上的 kube−proxy (iptables/ipvs) 规则将流量从 NodePort 转发到 Service 的 ClusterIP，最终路由到后端 Pod。
+
+2. IP 模式 (直连 Pod 模式)
+利用了 AWS Load Balancer Controller 和 AWS CNI（容器网络接口）的集成能力。
+工作原理：
+(1)需要安装 AWS Load Balancer Controller，并在 Service 中添加特定注解
+(2)AWS Load Balancer Controller 在 AWS 中创建 Network Load Balancer (NLB)。关键在于：负载均衡器的目标组 (Target Group) 直接注册 后端 Pod 的 IP 地址，而不是节点的 IP 和 NodePort。NLB 直接将流量路由到 Pod IP，完全跳过了 NodePort 和 kube−proxy 的转发步骤。
+```
+
+
+
+
+
 ##### 例子
 
 ![Service - LoadBalancer](5-k8sService.assets/Service%20-%20LoadBalancer.png)

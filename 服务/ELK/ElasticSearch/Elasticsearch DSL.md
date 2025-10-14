@@ -37,21 +37,38 @@ DSL查询主要分为两大类:叶子查询、符合查询
 直接在特定字段上查询特定值
 ```
 
-##### match
+##### match(全文模糊查询)
 
 ```bash
-全文查询，会对查询进行分词，然后去匹配。建议在text字段使用
+全文查询，会对查询内容进行分词，然后去匹配。建议在text字段使用
 "query": {
 	"match": {
-		"title": "Quick Brown Fox"
+		"title" : "Quick Brown Fox"
 	}
 }
 ```
 
-##### term
+##### match phrase(短语查询)
 
 ```bash
-精确查询。用于匹配未经分词的精确值(如keyword字段)
+短语搜索，查询内容会被分词，但要求分词后的词项在索引中位置连续
+#查询出的内容[quick][brown][fox]这三个词项在索引中的位置必须按顺序连续
+"query" : {
+	"match_phrase" : {
+		"title" : "quick brown fox"
+	}
+}
+
+#能查出"The quick brown fox jumps over the lazy dog"
+#查不到"The quick dog, the lazy brown cat, the fox."
+```
+
+
+
+##### term(精确词项查询)
+
+```bash
+精确查询。查询的内容被视为一个整体，不经过分词器，推荐用于keyowrd字段
 "query": {
 	"term": {
 		"status.keyword": "published"
@@ -79,7 +96,36 @@ DSL查询主要分为两大类:叶子查询、符合查询
 }
 ```
 
-##### range
+##### prefix(前缀查询)
+
+```bash
+查询的内容被视为一个整体，不经过分词器，直接用于前缀模式进行匹配
+#匹配所有以sale开头的标签
+"query" : {
+	"prefix" : {
+		"tags" : "sale"
+	}
+}
+```
+
+
+
+##### wildcard(通配符查询)
+
+```bash
+#查询tags中包含*code模式的文档，例如coupon_code 或者promo_code
+"query" : {
+	"wildcard" : {
+		"tags" : {
+			"value" : "*code"
+		}
+	}
+}
+```
+
+
+
+##### range(范围查询)
 
 ```json
 范围查询
@@ -93,15 +139,32 @@ DSL查询主要分为两大类:叶子查询、符合查询
 }
 ```
 
-##### exists/missing
+##### exists/missing(存在性查询)
 
-```
+```bash
 判断字段是否存在
+"query" : {
+	"exists" : {
+		"field" : "start_date"
+	}
+}
+```
+
+##### regexp(正则表达式查询)
+
+```bash
+"query" : {
+	"regexp" : {
+		"product_id" : "B[0-9]{3}"
+	}
+}
 ```
 
 
 
-#### 2.符合查询(Compound Queries)
+
+
+#### 2.复合查询(Compound Queries)
 
 ```
 将其他叶子查询或复合查询组合起来，形成更复杂的逻辑
@@ -127,6 +190,147 @@ filter：必须匹配，但不贡献得分，性能更高，常用于过滤。
   }
 }
 ```
+
+
+
+## ES查询DSL
+
+```json
+{
+  // ****** 1. 文档控制参数 ******
+  "track_total_hits": false,
+  "sort": [ ... ],
+  "fields": [ ... ],
+  "size": 500,
+  "version": true,
+  "script_fields": {},
+  "stored_fields": [ "*" ],
+  "runtime_mappings": {},
+  "_source": false, // <-- 关键参数
+  
+  // ****** 2. 核心查询和过滤 ******
+  "query": {
+    "bool": {
+      "must": [ ... ],
+      "filter": [ ... ],
+      "should": [],
+      "must_not": []
+    }
+  },
+  
+  // ****** 3. 显示/优化参数 ******
+  "highlight": { ... }
+}
+```
+
+### 1.文档控制参数
+
+```bash
+size:控制返回的文档数量，如果是聚合查询此值应置为0
+
+sort:定义搜索结果的排序方式，Kibana默认使用@timestamp降序(desc)排序
+
+track_total_hits:控制命中总数的计算。ES在执行查询时，不会精确计算所有匹配文档的总数，而是返回一个近似值，例如10000并附带relation: "gte"表示至少有10000条。该参数可以强制ES精确计算并返回总匹配数默认值是false，即不计算总数返回ES优化后的近似值
+track_total_hits:true可以强制计算搜索匹配文档的总数，无论数量多少
+track_total_hits:10000表示精确计算前10000条匹配结果的总数，如果实际匹配数超过10000，则返回10000并标记为近似值(relation: "gte")
+
+_source:控制是否返回原始文档源，false意味着不反悔完整的JSON文档，只返回在fields中指定的字段，优化网络传输
+
+fields：指定要反悔的字段列表，结合_source: false使用
+
+script_fields:运行时计算字段，允许用户在查询结果返回之前，对文档中的一个或多个字段进行运行时计算、转换或修改，并将计算结果作为一个新的字段返回，相当于一个脚本，能耗高，不推荐使用
+
+stored_fields:["*"]表示返回所有可存储的字段，与_source: false结合使用。可以将字段的值存储到索引中，这与_source字段分开，如果快速检索这些字段的值，而不去解析庞大的_source字段，可以使用该字段
+
+version:返回文档的版本号，这是Kibana进行并发控制和更新视图所必须的。ES会给每个文档维护一个版本号，每次文档被修改，版本号递增。刷新discover视图时返回的是最新的版本号
+```
+
+### 2.核心查询和过滤(query对象)
+
+```bash
+#使用bool查询组合各种条件
+must：必须满足条件，AND逻辑，参与评分
+filter:必须满足条件，AND逻辑，不参与评分
+should:字面意思，OR逻辑，参与评分
+must_not：必须排除，NOT逻辑，不参与评分
+```
+
+### 3.显示优化参数(highlight)
+
+```bash
+highlight：配置搜索结果中的关键词高亮
+```
+
+### 示例
+
+```json
+{
+  "track_total_hits": false,
+  "sort": [
+    {
+      "@timestamp": {
+        "order": "desc",
+        "unmapped_type": "boolean"
+      }
+    }
+  ],
+  "fields": [
+    {
+      "field": "*",
+      "include_unmapped": "true"
+    },
+    {
+      "field": "@timestamp",
+      "format": "strict_date_optional_time"
+    }
+  ],
+  "size": 500,
+  "version": true,
+  "script_fields": {},
+  "stored_fields": [
+    "*"
+  ],
+  "runtime_mappings": {},
+  "_source": false,
+  "query": {
+    "bool": {
+      "must": [],
+      "filter": [
+        {
+          "range": {
+            "@timestamp": {
+              "format": "strict_date_optional_time",
+              "gte": "2025-10-13T06:10:42.786Z",
+              "lte": "2025-10-13T06:25:42.786Z"
+            }
+          }
+        },
+        {
+          "match_phrase": {
+            "tdcDomain": "mdc.iweq1ddc.com"
+          }
+        }
+      ],
+      "should": [],
+      "must_not": []
+    }
+  },
+  "highlight": {
+    "pre_tags": [
+      "@kibana-highlighted-field@"
+    ],
+    "post_tags": [
+      "@/kibana-highlighted-field@"
+    ],
+    "fields": {
+      "*": {}
+    },
+    "fragment_size": 2147483647
+  }
+}
+```
+
+
 
 ## ES DSL的响应
 
