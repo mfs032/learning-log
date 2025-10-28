@@ -579,11 +579,118 @@ lsof | grep "deleted"可以看到已删除，但是正在被使用的文件以�
 
 
 
+# ps命令
+
+```bash
+-e:显示系统上的所有进程，等效-A，没有这个选项只显示与当前终端(TTY)相关的进程。
+-f：显示完整的格式，提供更多的信息
+UID	启动该进程的用户ID（通常是用户名）
+PID	进程ID
+PPID	父进程ID
+C	CPU 使用率
+STIME	进程启动时间
+TTY	进程所在的终端
+TIME	进程消耗的总CPU时间
+CMD	完整的命令行（包括启动路径和参数）
+
+```
+
+
+
+# top命令
+
+```bash
+top输出主要有两个部分：概况区和进程区
+##1.概况区
+#第一行：时间、运行时间、负载平均值
+top - 01:27:42	当前时间
+up 10 days, 2:35 系统运行时间
+1 user			当前登录用户数
+load average: 0.00, 0.01, 0.05	系统平均负载：过去1分钟、5分钟、15分钟，等待CPU资源的进程数
+例子：
+top - 06:37:43 up 12 days, 25 min,  2 users,  load average: 0.14, 0.07, 0.02
+
+#第二行：任务/进程
+Tasks: 180 total	系统中的总进程数
+1 running			正在运行(使用CPU)的进程数
+175 sleeping		正在休眠(等待I/O或事件)的进程数
+4 stopped			已停止但尚未终止的进程数
+0 zombie			僵尸进程数(Zombie Processes)已完成但父进程尚未清理的进程。非零值通常是程序错误的信号
+例子：
+Tasks: 106 total,   1 running, 105 sleeping,   0 stopped,   0 zombie
+
+#第三行：CPU状态
+us	用户空间(User Space)	用户进程在CPU上花费的时间百分比。
+sy	内核空间(System Space)	内核代码在CPU上花费的时间百分比(如系统调用)
+ni	Nice值	带有非默认nice值的用户进程所占用的CPU百分比
+id	空闲(Idle)	CPU处于空闲状态的百分比。
+wa	I/O等待		CPU在等待磁盘I/O完成时花费的时间百分比
+hi	硬件中断(Hardware IRQ)	处理硬件中断的时间
+si	软件终端(Software IRQ)	处理软件中断的时间
+st	偷取时间(Steal Time)	仅在虚拟机可见，标识被同一物理主机上其他VM偷走的CPU时间
+例子：
+%Cpu(s):  3.2 us,  0.0 sy,  0.0 ni, 96.8 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+
+#第四、五行：内存状态
+Mem	total	物理内存总量
+Mem	free	闲置的物理内存量
+Mem	used	已使用的物理内存量
+Mem	buff/cache	用作缓冲区和缓存的内存量
+Swap	total/free/used	交换分区的总量、空闲量和已使用量
+例子：
+MiB Mem :   3913.3 total,   2676.3 free,    265.6 used,    971.3 buff/cache
+MiB Swap:      0.0 total,      0.0 free,      0.0 used.   3419.8 avail Mem
+
+##2.进程区
+列名,含义
+PID,进程 ID (Process ID)，用于识别进程
+USER,运行该进程的用户
+PR,优先级 (Priority) — 内核调度优先级
+NI,Nice 值 (Nice Value) — 进程的友好值，范围 -20 (高优先级) 到 19 (低优先级)
+VIRT,虚拟内存 (Virtual Memory) — 进程使用的总虚拟内存
+RES,驻留内存 (Resident Memory) — 进程在物理内存中占用的实际内存量 (重要)
+SHR,共享内存 (Shared Memory) — 进程可以与其他进程共享的内存量
+S,"进程状态 (State) — 如 R (Running), S (Sleeping), Z (Zombie) 等"
+%CPU,进程上次更新以来占用的 CPU 百分比 (默认排序依据)
+%MEM,进程在物理内存中占用的 内存百分比
+TIME+,进程自启动以来占用的 CPU 总时间 (精确到百分之一秒)
+COMMAND,启动进程的命令行名称
+```
+
+## top交互式操作
+
+```bash
+h或?		显示帮助信息
+k		杀死(kill)进程，按下后输入PID，然后选择信号
+r		重置Nice值
+P(大写)	按CPU使用率排序
+M(大写)	按内存使用率排序
+T		按运行时间排序
+1		切换CPU显示模式，显示所有CPU
+z(小写)	切换彩色显示模式
+W	将当前的配置(排序、字段)写入配置文件，下次启动top使用此配置
+q	推出top命令
+```
+
+## top命令的常用启动参数
+
+```bash
+-d	刷新时间，单位秒 top -d 1.5
+-p	监控指定的PID进程top -p 1234
+-u	监控指定用户运行的进程top -u www
+-n	刷新N次后自动退出，top -n 1脚本自动采集数据
+-b	一批处理模式运行，并将结果输出到文件或管道中top -b -n 1
+```
+
+
+
+
+
+
+
+
+
 # journalctl命令
-
-```
-
-```
 
 
 
